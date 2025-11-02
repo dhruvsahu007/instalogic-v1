@@ -1,0 +1,22 @@
+.sidebar-touch {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: right center;
+  background: #4A90E2;
+  color: white;
+  padding: 15px 30px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 100;
+  transition: background 0.3s;
+}
+
+.sidebar-touch:hover {
+  background: #357ABD;
+}
+
+.sidebar-touch span {
+  white-space: nowrap;
+}

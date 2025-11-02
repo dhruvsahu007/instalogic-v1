@@ -1,0 +1,377 @@
+{
+  "version": "1.0",
+  "description": "Intent and entity mapping for InstaLogic guided Q&A chatbot",
+  "intents": [
+    {
+      "intent_id": "general_about_company",
+      "intent_name": "General / About the Company",
+      "description": "Questions about InstaLogic's identity, mission, location, and history",
+      "sample_utterances": [
+        "Who is Instalogic?",
+        "What does Instalogic do?",
+        "Where are you located?",
+        "When was Instalogic founded?",
+        "Who are the founders or leadership team?",
+        "What is your company mission?",
+        "Do you have any certifications?"
+      ],
+      "entities": [],
+      "response_type": "knowledge_base",
+      "rich_actions": [
+        {"type": "link", "label": "About Us", "url": "https://www.instalogic.in/our-story/"},
+        {"type": "link", "label": "Contact Us", "url": "https://www.instalogic.in/contact-us/"}
+      ]
+    },
+    {
+      "intent_id": "services_overview",
+      "intent_name": "Services Overview",
+      "description": "Questions about InstaLogic's service offerings",
+      "sample_utterances": [
+        "What services do you offer?",
+        "Tell me about your Data Analytics services",
+        "What is Business Intelligence Support & Advisory?",
+        "Do you offer Financial Impact Assessment services?",
+        "Tell me about your Software Development capabilities",
+        "Do you provide Training and Skilling programs?",
+        "What e-governance solutions do you provide?",
+        "What is Business Process Reengineering (BPR) at Instalogic?"
+      ],
+      "entities": [
+        {"entity": "service_type", "values": ["Data Analytics", "BI Support", "Financial Impact", "Software Development", "Training", "E-Governance", "BPR"]}
+      ],
+      "response_type": "knowledge_base",
+      "rich_actions": [
+        {"type": "link", "label": "View All Services", "url": "https://www.instalogic.in/our-services/"},
+        {"type": "button", "label": "Request Demo", "action": "start_demo_flow"},
+        {"type": "button", "label": "Contact Sales", "action": "start_contact_flow"}
+      ]
+    },
+    {
+      "intent_id": "case_studies",
+      "intent_name": "Case Studies / Past Work",
+      "description": "Questions about InstaLogic's portfolio and past projects",
+      "sample_utterances": [
+        "Can you show me your case studies?",
+        "Tell me about the Visual Analytics Dashboard for MBOCWWB",
+        "What did you deliver for the Cess Collection Portal?",
+        "Can I see the Financial Impact Assessment you did for Mahajyoti & OBBW?",
+        "Do you have government client examples?"
+      ],
+      "entities": [
+        {"entity": "case_study_name", "values": ["MBOCWWB", "Cess Collection Portal", "Mahajyoti", "OBBW"]}
+      ],
+      "response_type": "knowledge_base",
+      "rich_actions": [
+        {"type": "link", "label": "View Case Studies", "url": "https://www.instalogic.in/case-studies/"},
+        {"type": "button", "label": "Request Similar Solution", "action": "start_demo_flow"}
+      ]
+    },
+    {
+      "intent_id": "project_scoping",
+      "intent_name": "Project Scoping & Engagement",
+      "description": "Questions about starting projects and engagement models",
+      "sample_utterances": [
+        "How do I start a project with Instalogic?",
+        "What is your typical project engagement model (fixed-price, T&M)?",
+        "Can you help write an RFP or proposal?",
+        "What are your typical project timelines?",
+        "Do you offer post-deployment support and maintenance?",
+        "How do you handle project change requests?"
+      ],
+      "entities": [
+        {"entity": "engagement_model", "values": ["fixed-price", "T&M", "time and material"]}
+      ],
+      "response_type": "knowledge_base",
+      "rich_actions": [
+        {"type": "button", "label": "Request Quote", "action": "start_contact_flow"},
+        {"type": "button", "label": "Upload RFP", "action": "start_rfp_flow"}
+      ]
+    },
+    {
+      "intent_id": "technical_delivery",
+      "intent_name": "Technical & Delivery Questions",
+      "description": "Questions about tools, technologies, and technical capabilities",
+      "sample_utterances": [
+        "Which BI tools do you use (Power BI, Qlik, Tableau)?",
+        "Which programming languages and frameworks do you use?",
+        "Do you integrate with existing databases (Postgres, MySQL, Excel)?",
+        "Can you connect dashboards to live data sources?",
+        "What is your approach to data security and privacy?",
+        "Do you provide APIs for data access?",
+        "How do you manage deployments and DevOps?"
+      ],
+      "entities": [
+        {"entity": "tool_name", "values": ["Power BI", "Qlik", "Tableau", "Postgres", "MySQL", "Excel"]},
+        {"entity": "technology_area", "values": ["BI tools", "programming", "databases", "security", "APIs", "DevOps"]}
+      ],
+      "response_type": "knowledge_base",
+      "rich_actions": [
+        {"type": "button", "label": "Schedule Technical Call", "action": "start_contact_flow"},
+        {"type": "button", "label": "Request Architecture Doc", "action": "start_contact_flow"}
+      ]
+    },
+    {
+      "intent_id": "pricing_commercial",
+      "intent_name": "Pricing & Commercial",
+      "description": "Questions about costs, pricing models, and payment",
+      "sample_utterances": [
+        "How much does a dashboard project cost?",
+        "Do you offer fixed cost or subscription pricing?",
+        "Do you provide cost estimates or quotations?",
+        "What payment methods do you accept?",
+        "Do you offer discounts for government projects or long-term contracts?"
+      ],
+      "entities": [
+        {"entity": "pricing_model", "values": ["fixed cost", "subscription", "T&M"]},
+        {"entity": "project_type", "values": ["dashboard", "analytics", "custom development"]}
+      ],
+      "response_type": "knowledge_base",
+      "rich_actions": [
+        {"type": "button", "label": "Get Quote", "action": "start_contact_flow"},
+        {"type": "button", "label": "Request Estimate", "action": "start_demo_flow"}
+      ]
+    },
+    {
+      "intent_id": "demos_poc",
+      "intent_name": "Demos, Trials & PoC",
+      "description": "Requests for demonstrations or proof of concepts",
+      "sample_utterances": [
+        "Can I request a demo of your dashboards?",
+        "Do you provide a proof-of-concept (PoC)?",
+        "How long does a PoC take and what does it include?",
+        "Can I get a sandbox to test the solution?",
+        "Show me a demo",
+        "I want to see a demonstration"
+      ],
+      "entities": [
+        {"entity": "demo_type", "values": ["dashboard demo", "PoC", "sandbox", "trial"]}
+      ],
+      "response_type": "transactional",
+      "transaction_flow": "demo_request",
+      "rich_actions": [
+        {"type": "button", "label": "Request Demo", "action": "start_demo_flow"},
+        {"type": "button", "label": "Request PoC", "action": "start_demo_flow"}
+      ]
+    },
+    {
+      "intent_id": "support_training",
+      "intent_name": "Support & Training",
+      "description": "Questions about technical support and training programs",
+      "sample_utterances": [
+        "How do I get technical support?",
+        "What are your support SLAs?",
+        "Do you offer user training sessions for dashboards?",
+        "Can you provide training materials or certification for staff?"
+      ],
+      "entities": [
+        {"entity": "support_type", "values": ["technical support", "training", "SLA", "certification"]}
+      ],
+      "response_type": "knowledge_base",
+      "rich_actions": [
+        {"type": "link", "label": "Contact Support", "url": "https://www.instalogic.in/contact-us/"},
+        {"type": "button", "label": "Schedule Training", "action": "start_contact_flow"}
+      ]
+    },
+    {
+      "intent_id": "careers_hiring",
+      "intent_name": "Careers & Hiring",
+      "description": "Questions about job opportunities and applying to InstaLogic",
+      "sample_utterances": [
+        "Are you hiring?",
+        "What job openings are available now?",
+        "How do I apply to work at Instalogic?",
+        "What is life like at Instalogic?",
+        "How can I submit my resume?",
+        "I want to apply for a job"
+      ],
+      "entities": [
+        {"entity": "position_type", "values": ["Data Analyst", "Software Engineer", "BI Consultant", "Developer"]}
+      ],
+      "response_type": "transactional",
+      "transaction_flow": "career_application",
+      "rich_actions": [
+        {"type": "button", "label": "Upload Resume", "action": "start_career_flow"},
+        {"type": "link", "label": "View Open Positions", "url": "https://www.instalogic.in/careers/"}
+      ]
+    },
+    {
+      "intent_id": "contact_communication",
+      "intent_name": "Contact & Communication",
+      "description": "Questions about how to reach InstaLogic",
+      "sample_utterances": [
+        "How can I contact Instalogic?",
+        "What is your phone number and email?",
+        "Can I schedule a call with sales?",
+        "Where is your office located?",
+        "How long will it take to get a response?"
+      ],
+      "entities": [
+        {"entity": "contact_method", "values": ["phone", "email", "office visit", "call"]}
+      ],
+      "response_type": "knowledge_base",
+      "rich_actions": [
+        {"type": "button", "label": "Schedule Call", "action": "start_contact_flow"},
+        {"type": "link", "label": "Contact Page", "url": "https://www.instalogic.in/contact-us/"},
+        {"type": "info", "label": "Email", "value": "info@instalogic.in"},
+        {"type": "info", "label": "Phone", "value": "+91-XXX-XXX-XXXX"}
+      ]
+    },
+    {
+      "intent_id": "legal_compliance",
+      "intent_name": "Legal, Privacy & Compliance",
+      "description": "Questions about legal policies and compliance",
+      "sample_utterances": [
+        "Where can I read your Privacy Policy and Terms of Use?",
+        "Do you comply with GDPR/CCPA?",
+        "How do you handle client data and confidentiality?",
+        "Do you have ISO/CMMI certifications?",
+        "Can you sign an NDA?"
+      ],
+      "entities": [
+        {"entity": "compliance_type", "values": ["GDPR", "CCPA", "ISO", "CMMI", "NDA"]}
+      ],
+      "response_type": "knowledge_base",
+      "rich_actions": [
+        {"type": "link", "label": "Privacy Policy", "url": "https://www.instalogic.in/privacy-policy/"},
+        {"type": "link", "label": "Terms & Conditions", "url": "https://www.instalogic.in/terms-conditions/"},
+        {"type": "button", "label": "Request NDA", "action": "start_contact_flow"}
+      ]
+    },
+    {
+      "intent_id": "procurement_rfp",
+      "intent_name": "Proposal / Procurement Specific",
+      "description": "Questions about RFPs, tenders, and procurement processes",
+      "sample_utterances": [
+        "Can you provide an estimated timeline and T&M estimate for a dashboard project with 5 reports?",
+        "We have an RFP — how do we share it with you?",
+        "Do you provide pre-bid clarifications for government tenders?",
+        "Can you sign an NDA?",
+        "I want to upload our RFP"
+      ],
+      "entities": [
+        {"entity": "procurement_type", "values": ["RFP", "tender", "pre-bid", "NDA"]}
+      ],
+      "response_type": "transactional",
+      "transaction_flow": "rfp_upload",
+      "rich_actions": [
+        {"type": "button", "label": "Upload RFP", "action": "start_rfp_flow"},
+        {"type": "info", "label": "Email RFPs to", "value": "proposals@instalogic.in"}
+      ]
+    },
+    {
+      "intent_id": "custom_integrations",
+      "intent_name": "Custom Requests & Integrations",
+      "description": "Questions about custom development and integrations",
+      "sample_utterances": [
+        "Can you build custom applications for our organization?",
+        "Do you integrate with payment gateways or portals?",
+        "Can you process bulk uploads from Excel templates?",
+        "Can you do drone imagery and GIS marking projects?",
+        "Do you provide AR/visualization hosting for survey data?"
+      ],
+      "entities": [
+        {"entity": "integration_type", "values": ["payment gateway", "Excel", "GIS", "drone imagery", "AR", "custom app"]}
+      ],
+      "response_type": "knowledge_base",
+      "rich_actions": [
+        {"type": "button", "label": "Discuss Requirements", "action": "start_contact_flow"},
+        {"type": "button", "label": "Request Consultation", "action": "start_demo_flow"}
+      ]
+    },
+    {
+      "intent_id": "blog_insights",
+      "intent_name": "Blog & Insights Queries",
+      "description": "Questions about InstaLogic's content and publications",
+      "sample_utterances": [
+        "What blog posts do you have about data analytics?",
+        "Do you publish case studies or whitepapers?",
+        "How can I subscribe to your newsletter?"
+      ],
+      "entities": [
+        {"entity": "content_type", "values": ["blog", "case study", "whitepaper", "newsletter"]}
+      ],
+      "response_type": "knowledge_base",
+      "rich_actions": [
+        {"type": "link", "label": "Visit Blog", "url": "https://www.instalogic.in/blog/"},
+        {"type": "button", "label": "Subscribe to Newsletter", "action": "start_contact_flow"}
+      ]
+    },
+    {
+      "intent_id": "faq_quick_help",
+      "intent_name": "FAQ / Quick Help Prompts",
+      "description": "Short utterances for quick navigation",
+      "sample_utterances": [
+        "Services?",
+        "Case studies?",
+        "Book demo",
+        "Contact sales",
+        "Support",
+        "Careers"
+      ],
+      "entities": [],
+      "response_type": "quick_action",
+      "rich_actions": [
+        {"type": "link", "label": "Services", "url": "https://www.instalogic.in/our-services/"},
+        {"type": "link", "label": "Case Studies", "url": "https://www.instalogic.in/case-studies/"},
+        {"type": "button", "label": "Book Demo", "action": "start_demo_flow"},
+        {"type": "button", "label": "Contact Sales", "action": "start_contact_flow"}
+      ]
+    },
+    {
+      "intent_id": "human_handoff",
+      "intent_name": "Fallback / Hand-off Triggers",
+      "description": "Requests to escalate to human agent",
+      "sample_utterances": [
+        "I want to speak to a human",
+        "My issue is urgent — connect me to support",
+        "This is a procurement query — connect me to the proposals team",
+        "I want a custom quote — request contact details and project brief",
+        "Talk to a person",
+        "Connect me to an agent",
+        "This is urgent"
+      ],
+      "entities": [
+        {"entity": "escalation_reason", "values": ["urgent", "complex", "procurement", "custom quote"]}
+      ],
+      "response_type": "handoff",
+      "priority": "high",
+      "rich_actions": [
+        {"type": "action", "label": "Escalate to Human", "action": "escalate_to_human"},
+        {"type": "info", "label": "Call Us", "value": "+91-XXX-XXX-XXXX"},
+        {"type": "info", "label": "Email Us", "value": "support@instalogic.in"}
+      ]
+    }
+  ],
+  "entity_definitions": {
+    "service_type": {
+      "type": "categorical",
+      "values": ["Data Analytics", "BI Support", "Financial Impact", "Software Development", "Training", "E-Governance", "BPR"]
+    },
+    "case_study_name": {
+      "type": "categorical",
+      "values": ["MBOCWWB", "Cess Collection Portal", "Mahajyoti", "OBBW"]
+    },
+    "contact_method": {
+      "type": "categorical",
+      "values": ["phone", "email", "office visit", "scheduled call"]
+    },
+    "demo_type": {
+      "type": "categorical",
+      "values": ["dashboard demo", "PoC", "sandbox", "trial"]
+    },
+    "industry": {
+      "type": "categorical",
+      "values": ["Government", "Finance", "Retail", "Healthcare", "Manufacturing", "Other"]
+    },
+    "engagement_model": {
+      "type": "categorical",
+      "values": ["fixed-price", "T&M", "retainer", "subscription"]
+    }
+  },
+  "response_types": {
+    "knowledge_base": "Query AWS Bedrock Knowledge Base for answer",
+    "transactional": "Start multi-turn conversational flow",
+    "quick_action": "Provide quick reply buttons without detailed answer",
+    "handoff": "Escalate to human agent immediately"
+  }
+}
