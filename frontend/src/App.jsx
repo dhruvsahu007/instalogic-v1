@@ -8,7 +8,8 @@ import Contact from './components/Contact'
 import Footer from './components/Footer'
 import Sidebar from './components/Sidebar'
 import Chatbot from './components/Chatbot'
-import LeadsDashboard from './components/LeadsDashboard'
+import Dashboard from './pages/admin/Dashboard'
+import Leads from './pages/admin/Leads'
 import './App.css'
 
 function HomePage() {
@@ -42,7 +43,8 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/admin/leads" element={<LeadsDashboard />} />
+          <Route path="/admin/dashboard" element={<Dashboard />} />
+          <Route path="/admin/leads" element={<Leads />} />
         </Routes>
       </div>
     </Router>
