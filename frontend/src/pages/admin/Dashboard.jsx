@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getApiUrl } from '../../config/api';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -11,7 +12,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     // Fetch stats from API
-    fetch('http://localhost:8000/api/leads/statistics')
+    fetch(getApiUrl('api/leads/statistics'))
       .then(res => res.json())
       .then(data => {
         if (data.success) {

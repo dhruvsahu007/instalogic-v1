@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getApiUrl } from '../../config/api';
 
 const PriorityQueue = () => {
   const [leads, setLeads] = useState([]);
@@ -72,7 +73,7 @@ const PriorityQueue = () => {
   };
 
   const fetchLeads = () => {
-    fetch('http://localhost:8000/api/leads')
+    fetch(getApiUrl('api/leads'))
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -103,7 +104,7 @@ const PriorityQueue = () => {
     
     setSaving(true);
     try {
-      const response = await fetch(`http://localhost:8000/api/leads/${selectedLead.id}/notes?notes=${encodeURIComponent(adminNotes)}`, {
+      const response = await fetch(getApiUrl(`api/leads/${selectedLead.id}/notes?notes=${encodeURIComponent(adminNotes)}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -135,7 +136,7 @@ const PriorityQueue = () => {
     if (!selectedLead) return;
     
     try {
-      const response = await fetch(`http://localhost:8000/api/leads/${selectedLead.id}/status?status=${newStatus}`, {
+      const response = await fetch(getApiUrl(`api/leads/${selectedLead.id}/status?status=${newStatus}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

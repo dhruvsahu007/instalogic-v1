@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getApiUrl } from '../../config/api';
 
 const Leads = () => {
   const [leads, setLeads] = useState([]);
@@ -29,8 +30,8 @@ const Leads = () => {
 
   const fetchLeads = () => {
     const url = filterStatus === 'ALL' 
-      ? 'http://localhost:8000/api/leads'
-      : `http://localhost:8000/api/leads?status=${filterStatus}`;
+      ? getApiUrl('api/leads')
+      : getApiUrl(`api/leads?status=${filterStatus}`);
     
     fetch(url)
       .then(res => res.json())
@@ -84,7 +85,7 @@ const Leads = () => {
     
     setSaving(true);
     try {
-      const response = await fetch(`http://localhost:8000/api/leads/${selectedLead.id}/notes?notes=${encodeURIComponent(adminNotes)}`, {
+      const response = await fetch(getApiUrl(`api/leads/${selectedLead.id}/notes?notes=${encodeURIComponent(adminNotes)}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +118,7 @@ const Leads = () => {
     if (!selectedLead) return;
     
     try {
-      const response = await fetch(`http://localhost:8000/api/leads/${selectedLead.id}/status?status=${newStatus}`, {
+      const response = await fetch(getApiUrl(`api/leads/${selectedLead.id}/status?status=${newStatus}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
