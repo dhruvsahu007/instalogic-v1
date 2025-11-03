@@ -196,7 +196,11 @@ async def get_contact_messages():
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "source_filter": "STRICT_MODE_v2_DEBUG",  # Indicator that new code is loaded
+        "timestamp": datetime.now().isoformat()
+    }
 
 # ============= CHATBOT ENDPOINTS =============
 

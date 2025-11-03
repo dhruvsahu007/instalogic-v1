@@ -117,22 +117,43 @@ class BedrockClient:
     def _map_s3_to_website(self, content: str) -> str:
         """
         Map S3 content to relevant InstaLogic website pages based on keywords
+        Prioritizes more specific matches to avoid incorrect mappings
         """
         content_lower = content.lower()
         
-        # Check for specific topics and map to relevant pages
-        if any(keyword in content_lower for keyword in ['case study', 'case studies', 'project', 'client work', 'success story']):
-            return 'https://www.instalogic.in/case-studies/'
-        elif any(keyword in content_lower for keyword in ['service', 'offering', 'solution', 'capability', 'what we do']):
+        # Count keyword matches for each category to determine best fit
+        service_keywords = ['service', 'offering', 'solution', 'capability', 'what we do', 'we provide', 'we offer', 'analytics', 'dashboard', 'bi support', 'financial impact', 'software development', 'training', 'e-governance', 'bpr']
+        case_study_keywords = ['case study', 'case studies', 'success story', 'client example', 'past work', 'portfolio', 'delivered for', 'implemented at']
+        career_keywords = ['career', 'job', 'hiring', 'position', 'opening', 'work with us', 'join our team', 'apply']
+        about_keywords = ['about us', 'our story', 'history', 'mission', 'vision', 'values', 'founded', 'who we are']
+        contact_keywords = ['contact', 'reach us', 'get in touch', 'email us', 'phone number', 'office address', 'location']
+        
+        # Count matches for each category
+        service_count = sum(1 for keyword in service_keywords if keyword in content_lower)
+        case_study_count = sum(1 for keyword in case_study_keywords if keyword in content_lower)
+        career_count = sum(1 for keyword in career_keywords if keyword in content_lower)
+        about_count = sum(1 for keyword in about_keywords if keyword in content_lower)
+        contact_count = sum(1 for keyword in contact_keywords if keyword in content_lower)
+        
+        # Return URL based on highest match count
+        max_count = max(service_count, case_study_count, career_count, about_count, contact_count)
+        
+        if max_count == 0:
+            # No clear match, default to homepage
+            return 'https://www.instalogic.in/'
+        
+        # Return the category with most matches
+        if service_count == max_count:
             return 'https://www.instalogic.in/our-services/'
-        elif any(keyword in content_lower for keyword in ['career', 'job', 'hiring', 'position', 'opening', 'work with us', 'join our team']):
+        elif case_study_count == max_count:
+            return 'https://www.instalogic.in/case-studies/'
+        elif career_count == max_count:
             return 'https://www.instalogic.in/careers/'
-        elif any(keyword in content_lower for keyword in ['about us', 'our story', 'history', 'mission', 'vision', 'values']):
+        elif about_count == max_count:
             return 'https://www.instalogic.in/our-story/'
-        elif any(keyword in content_lower for keyword in ['contact', 'reach us', 'get in touch', 'email', 'phone', 'address']):
+        elif contact_count == max_count:
             return 'https://www.instalogic.in/contact-us/'
         else:
-            # Default to homepage
             return 'https://www.instalogic.in/'
     
     def retrieve_from_knowledge_base(

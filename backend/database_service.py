@@ -1,8 +1,7 @@
 """
-SQLite Database Service for saving chatbot leads
+Universal Database Service - Supports both SQLite and PostgreSQL
 """
 import os
-import sqlite3
 import json
 from typing import Dict, Optional, List
 from datetime import datetime
@@ -11,185 +10,312 @@ from contextlib import contextmanager
 
 load_dotenv()
 
+# Determine database type
+DATABASE_TYPE = os.getenv('DATABASE_TYPE', 'sqlite').lower()
+
+if DATABASE_TYPE == 'postgresql':
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    USE_POSTGRESQL = True
+else:
+    import sqlite3
+    USE_POSTGRESQL = False
+
 
 class DatabaseService:
-    """Service for managing SQLite database operations"""
+    """Service for managing database operations (SQLite or PostgreSQL)"""
     
     def __init__(self, db_path: str = None):
-        if db_path is None:
-            db_path = os.getenv('DATABASE_PATH', 'chatbot_leads.db')
+        self.use_postgresql = USE_POSTGRESQL
         
-        self.db_path = db_path
+        if self.use_postgresql:
+            # PostgreSQL configuration
+            self.pg_config = {
+                'host': os.getenv('RDS_HOST'),
+                'port': int(os.getenv('RDS_PORT', 5432)),
+                'database': os.getenv('RDS_DATABASE', 'postgres'),
+                'user': os.getenv('RDS_USERNAME'),
+                'password': os.getenv('RDS_PASSWORD')
+            }
+            print(f"[INFO] PostgreSQL database initialized: {self.pg_config['host']}")
+        else:
+            # SQLite configuration
+            if db_path is None:
+                db_path = os.getenv('DATABASE_PATH', 'chatbot_leads.db')
+            self.db_path = db_path
+            print(f"[INFO] SQLite database initialized: {self.db_path}")
+        
         self.init_database()
-        print(f"✅ SQLite database initialized: {self.db_path}")
     
     @contextmanager
     def get_connection(self):
         """Context manager for database connections"""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row  # Enable column access by name
-        try:
-            yield conn
-            conn.commit()
-        except Exception as e:
-            conn.rollback()
-            raise e
-        finally:
-            conn.close()
+        if self.use_postgresql:
+            conn = psycopg2.connect(**self.pg_config)
+            try:
+                yield conn
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                raise e
+            finally:
+                conn.close()
+        else:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            try:
+                yield conn
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                raise e
+            finally:
+                conn.close()
     
     def init_database(self):
         """Initialize database with required tables"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
-            # Create leads table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS chatbot_leads (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    type TEXT NOT NULL,
-                    name TEXT NOT NULL,
-                    contact TEXT NOT NULL,
-                    info TEXT,
-                    status TEXT DEFAULT 'NEW',
-                    admin_notes TEXT DEFAULT '',
-                    requested_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    ticket_id TEXT,
-                    metadata TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
+            if self.use_postgresql:
+                # PostgreSQL table creation
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS chatbot_leads (
+                        id SERIAL PRIMARY KEY,
+                        type VARCHAR(50) NOT NULL,
+                        name VARCHAR(255) NOT NULL,
+                        contact TEXT NOT NULL,
+                        info TEXT,
+                        status VARCHAR(50) DEFAULT 'NEW',
+                        admin_notes TEXT DEFAULT '',
+                        requested_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        ticket_id VARCHAR(50),
+                        metadata JSONB,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+                
+                # Create indexes
+                cursor.execute('''
+                    CREATE INDEX IF NOT EXISTS idx_status 
+                    ON chatbot_leads(status)
+                ''')
+                
+                cursor.execute('''
+                    CREATE INDEX IF NOT EXISTS idx_type 
+                    ON chatbot_leads(type)
+                ''')
+                
+                cursor.execute('''
+                    CREATE INDEX IF NOT EXISTS idx_requested_date 
+                    ON chatbot_leads(requested_date DESC)
+                ''')
+            else:
+                # SQLite table creation
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS chatbot_leads (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        type TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        contact TEXT NOT NULL,
+                        info TEXT,
+                        status TEXT DEFAULT 'NEW',
+                        admin_notes TEXT DEFAULT '',
+                        requested_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        ticket_id TEXT,
+                        metadata TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+                
+                # Create indexes
+                cursor.execute('''
+                    CREATE INDEX IF NOT EXISTS idx_status 
+                    ON chatbot_leads(status)
+                ''')
+                
+                cursor.execute('''
+                    CREATE INDEX IF NOT EXISTS idx_type 
+                    ON chatbot_leads(type)
+                ''')
+                
+                cursor.execute('''
+                    CREATE INDEX IF NOT EXISTS idx_requested_date 
+                    ON chatbot_leads(requested_date DESC)
+                ''')
             
-            # Create index for faster queries
-            cursor.execute('''
-                CREATE INDEX IF NOT EXISTS idx_status 
-                ON chatbot_leads(status)
-            ''')
-            
-            cursor.execute('''
-                CREATE INDEX IF NOT EXISTS idx_type 
-                ON chatbot_leads(type)
-            ''')
-            
-            cursor.execute('''
-                CREATE INDEX IF NOT EXISTS idx_requested_date 
-                ON chatbot_leads(requested_date DESC)
-            ''')
-            
-            print("✅ Database tables initialized")
+            print("[INFO] Database tables initialized")
     
     def save_lead(self, lead_data: Dict) -> Optional[int]:
-        """
-        Save lead data to SQLite database
-        
-        Args:
-            lead_data: Dictionary containing lead information
-                {
-                    "type": "DEMO_REQUEST" | "HUMAN_HANDOFF" | "RFP_UPLOAD" | "CAREER_APPLICATION",
-                    "name": str,
-                    "contact": str (email or phone),
-                    "info": str (details about the request),
-                    "metadata": dict (additional data)
-                }
-        
-        Returns:
-            Lead ID if successful, None otherwise
-        """
+        """Save lead data to database"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # Prepare the data
-                metadata_json = json.dumps(lead_data.get('metadata', {}))
+                # Prepare metadata
+                metadata = lead_data.get('metadata', {})
+                if self.use_postgresql:
+                    metadata_str = json.dumps(metadata) if metadata else '{}'
+                else:
+                    metadata_str = json.dumps(metadata) if metadata else '{}'
                 
-                cursor.execute('''
-                    INSERT INTO chatbot_leads 
-                    (type, name, contact, info, status, admin_notes, ticket_id, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    lead_data.get('type', 'UNKNOWN'),
-                    lead_data.get('name', 'N/A'),
-                    lead_data.get('contact', 'N/A'),
-                    lead_data.get('info', ''),
-                    'NEW',
-                    '',
-                    lead_data.get('ticket_id', ''),
-                    metadata_json
-                ))
+                # Insert query
+                if self.use_postgresql:
+                    cursor.execute('''
+                        INSERT INTO chatbot_leads 
+                        (type, name, contact, info, ticket_id, metadata, requested_date)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        RETURNING id
+                    ''', (
+                        lead_data.get('type'),
+                        lead_data.get('name'),
+                        lead_data.get('contact'),
+                        lead_data.get('info'),
+                        lead_data.get('ticket_id'),
+                        metadata_str,
+                        lead_data.get('requested_date', datetime.now())
+                    ))
+                    lead_id = cursor.fetchone()[0]
+                else:
+                    cursor.execute('''
+                        INSERT INTO chatbot_leads 
+                        (type, name, contact, info, ticket_id, metadata, requested_date)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        lead_data.get('type'),
+                        lead_data.get('name'),
+                        lead_data.get('contact'),
+                        lead_data.get('info'),
+                        lead_data.get('ticket_id'),
+                        metadata_str,
+                        lead_data.get('requested_date', datetime.now().isoformat())
+                    ))
+                    lead_id = cursor.lastrowid
                 
-                lead_id = cursor.lastrowid
-                print(f"✅ Lead saved to database: ID {lead_id}")
+                print(f"[INFO] Lead saved successfully (ID: {lead_id})")
                 return lead_id
                 
         except Exception as e:
-            print(f"❌ Error saving lead to database: {str(e)}")
+            print(f"[ERROR] Failed to save lead: {e}")
             return None
     
-    def get_all_leads(self, status: str = None) -> List[Dict]:
+    def get_all_leads(self, status: Optional[str] = None) -> List[Dict]:
         """Get all leads, optionally filtered by status"""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor()
+                if self.use_postgresql:
+                    cursor = conn.cursor(cursor_factory=RealDictCursor)
+                else:
+                    cursor = conn.cursor()
                 
-                if status and status != 'ALL':
-                    cursor.execute('''
-                        SELECT * FROM chatbot_leads 
-                        WHERE status = ?
-                        ORDER BY requested_date DESC
-                    ''', (status,))
+                if status:
+                    if self.use_postgresql:
+                        cursor.execute('''
+                            SELECT * FROM chatbot_leads 
+                            WHERE status = %s 
+                            ORDER BY created_at DESC
+                        ''', (status,))
+                    else:
+                        cursor.execute('''
+                            SELECT * FROM chatbot_leads 
+                            WHERE status = ? 
+                            ORDER BY created_at DESC
+                        ''', (status,))
                 else:
                     cursor.execute('''
                         SELECT * FROM chatbot_leads 
-                        ORDER BY requested_date DESC
+                        ORDER BY created_at DESC
                     ''')
                 
                 rows = cursor.fetchall()
-                leads = []
                 
+                # Convert to dictionaries
+                leads = []
                 for row in rows:
-                    lead = {
-                        'id': row['id'],
-                        'type': row['type'],
-                        'name': row['name'],
-                        'contact': row['contact'],
-                        'info': row['info'],
-                        'status': row['status'],
-                        'adminNotes': row['admin_notes'],
-                        'requestedDate': row['requested_date'],
-                        'ticketId': row['ticket_id'],
-                        'metadata': json.loads(row['metadata']) if row['metadata'] else {},
-                        'createdAt': row['created_at'],
-                        'updatedAt': row['updated_at']
-                    }
+                    if self.use_postgresql:
+                        lead = dict(row)
+                        # Parse JSONB metadata
+                        if isinstance(lead.get('metadata'), str):
+                            try:
+                                lead['metadata'] = json.loads(lead['metadata'])
+                            except:
+                                lead['metadata'] = {}
+                    else:
+                        lead = dict(row)
+                        # Parse JSON metadata
+                        if lead.get('metadata'):
+                            try:
+                                lead['metadata'] = json.loads(lead['metadata'])
+                            except:
+                                lead['metadata'] = {}
+                    
+                    # Convert datetime to ISO format
+                    for key in ['created_at', 'updated_at', 'requested_date']:
+                        if key in lead and lead[key]:
+                            if isinstance(lead[key], datetime):
+                                lead[key] = lead[key].isoformat()
+                    
                     leads.append(lead)
                 
                 return leads
                 
         except Exception as e:
-            print(f"❌ Error fetching leads: {str(e)}")
+            print(f"[ERROR] Failed to get leads: {e}")
             return []
     
-    def update_lead_status(self, lead_id: int, new_status: str) -> bool:
+    def get_lead_by_id(self, lead_id: int) -> Optional[Dict]:
+        """Get a specific lead by ID"""
+        try:
+            with self.get_connection() as conn:
+                if self.use_postgresql:
+                    cursor = conn.cursor(cursor_factory=RealDictCursor)
+                    cursor.execute('SELECT * FROM chatbot_leads WHERE id = %s', (lead_id,))
+                else:
+                    cursor = conn.cursor()
+                    cursor.execute('SELECT * FROM chatbot_leads WHERE id = ?', (lead_id,))
+                
+                row = cursor.fetchone()
+                if row:
+                    lead = dict(row)
+                    # Parse metadata
+                    if lead.get('metadata'):
+                        try:
+                            if isinstance(lead['metadata'], str):
+                                lead['metadata'] = json.loads(lead['metadata'])
+                        except:
+                            lead['metadata'] = {}
+                    return lead
+                return None
+                
+        except Exception as e:
+            print(f"[ERROR] Failed to get lead: {e}")
+            return None
+    
+    def update_lead_status(self, lead_id: int, status: str) -> bool:
         """Update lead status"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                
-                cursor.execute('''
-                    UPDATE chatbot_leads 
-                    SET status = ?, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                ''', (new_status, lead_id))
-                
-                if cursor.rowcount > 0:
-                    print(f"✅ Updated lead {lead_id} status to {new_status}")
-                    return True
+                if self.use_postgresql:
+                    cursor.execute('''
+                        UPDATE chatbot_leads 
+                        SET status = %s, updated_at = CURRENT_TIMESTAMP 
+                        WHERE id = %s
+                    ''', (status, lead_id))
                 else:
-                    print(f"⚠️  Lead {lead_id} not found")
-                    return False
-                    
+                    cursor.execute('''
+                        UPDATE chatbot_leads 
+                        SET status = ?, updated_at = CURRENT_TIMESTAMP 
+                        WHERE id = ?
+                    ''', (status, lead_id))
+                
+                # Check if any rows were affected
+                rows_affected = cursor.rowcount
+                return rows_affected > 0
         except Exception as e:
-            print(f"❌ Error updating lead status: {str(e)}")
+            print(f"[ERROR] Failed to update status: {e}")
             return False
     
     def update_lead_notes(self, lead_id: int, notes: str) -> bool:
@@ -197,75 +323,24 @@ class DatabaseService:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                
-                cursor.execute('''
-                    UPDATE chatbot_leads 
-                    SET admin_notes = ?, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                ''', (notes, lead_id))
-                
-                if cursor.rowcount > 0:
-                    print(f"✅ Updated lead {lead_id} notes")
-                    return True
+                if self.use_postgresql:
+                    cursor.execute('''
+                        UPDATE chatbot_leads 
+                        SET admin_notes = %s, updated_at = CURRENT_TIMESTAMP 
+                        WHERE id = %s
+                    ''', (notes, lead_id))
                 else:
-                    print(f"⚠️  Lead {lead_id} not found")
-                    return False
-                    
+                    cursor.execute('''
+                        UPDATE chatbot_leads 
+                        SET admin_notes = ?, updated_at = CURRENT_TIMESTAMP 
+                        WHERE id = ?
+                    ''', (notes, lead_id))
+                
+                # Check if any rows were affected
+                rows_affected = cursor.rowcount
+                return rows_affected > 0
         except Exception as e:
-            print(f"❌ Error updating lead notes: {str(e)}")
-            return False
-    
-    def get_lead_by_id(self, lead_id: int) -> Optional[Dict]:
-        """Get a specific lead by ID"""
-        try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                
-                cursor.execute('''
-                    SELECT * FROM chatbot_leads WHERE id = ?
-                ''', (lead_id,))
-                
-                row = cursor.fetchone()
-                if row:
-                    return {
-                        'id': row['id'],
-                        'type': row['type'],
-                        'name': row['name'],
-                        'contact': row['contact'],
-                        'info': row['info'],
-                        'status': row['status'],
-                        'adminNotes': row['admin_notes'],
-                        'requestedDate': row['requested_date'],
-                        'ticketId': row['ticket_id'],
-                        'metadata': json.loads(row['metadata']) if row['metadata'] else {},
-                        'createdAt': row['created_at'],
-                        'updatedAt': row['updated_at']
-                    }
-                return None
-                
-        except Exception as e:
-            print(f"❌ Error fetching lead: {str(e)}")
-            return None
-    
-    def delete_lead(self, lead_id: int) -> bool:
-        """Delete a lead (use with caution)"""
-        try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                
-                cursor.execute('''
-                    DELETE FROM chatbot_leads WHERE id = ?
-                ''', (lead_id,))
-                
-                if cursor.rowcount > 0:
-                    print(f"✅ Deleted lead {lead_id}")
-                    return True
-                else:
-                    print(f"⚠️  Lead {lead_id} not found")
-                    return False
-                    
-        except Exception as e:
-            print(f"❌ Error deleting lead: {str(e)}")
+            print(f"[ERROR] Failed to update notes: {e}")
             return False
     
     def get_statistics(self) -> Dict:
@@ -274,36 +349,28 @@ class DatabaseService:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
+                stats = {}
+                
                 # Total leads
-                cursor.execute('SELECT COUNT(*) as count FROM chatbot_leads')
-                total = cursor.fetchone()['count']
+                cursor.execute('SELECT COUNT(*) FROM chatbot_leads')
+                stats['total'] = cursor.fetchone()[0]
                 
-                # Leads by status
-                cursor.execute('''
-                    SELECT status, COUNT(*) as count 
-                    FROM chatbot_leads 
-                    GROUP BY status
-                ''')
-                status_counts = {row['status']: row['count'] for row in cursor.fetchall()}
+                # By status
+                if self.use_postgresql:
+                    cursor.execute('SELECT status, COUNT(*) FROM chatbot_leads GROUP BY status')
+                else:
+                    cursor.execute('SELECT status, COUNT(*) FROM chatbot_leads GROUP BY status')
                 
-                # Leads by type
-                cursor.execute('''
-                    SELECT type, COUNT(*) as count 
-                    FROM chatbot_leads 
-                    GROUP BY type
-                ''')
-                type_counts = {row['type']: row['count'] for row in cursor.fetchall()}
+                for row in cursor.fetchall():
+                    stats[row[0].lower()] = row[1]
                 
-                return {
-                    'total': total,
-                    'by_status': status_counts,
-                    'by_type': type_counts
-                }
+                return stats
                 
         except Exception as e:
-            print(f"❌ Error fetching statistics: {str(e)}")
-            return {'total': 0, 'by_status': {}, 'by_type': {}}
+            print(f"[ERROR] Failed to get statistics: {e}")
+            return {}
     
+    # Format helper methods
     def format_demo_lead(self, demo_data: Dict, ticket_id: str) -> Dict:
         """Format demo request data for database"""
         return {
@@ -325,66 +392,17 @@ class DatabaseService:
         """Format human handoff data for database"""
         return {
             'type': 'HUMAN_HANDOFF',
-            'name': 'Urgent Request',
-            'contact': 'See chat history',
-            'info': f"User requested human assistance: {query}",
+            'name': 'Escalated User',
+            'contact': 'Via Chat',
+            'info': f"User request: {query}",
             'ticket_id': ticket_id,
             'metadata': {
-                'original_query': query,
+                'query': query,
                 'priority': 'high'
-            }
-        }
-    
-    def format_rfp_lead(self, rfp_data: Dict, ticket_id: str) -> Dict:
-        """Format RFP upload data for database"""
-        return {
-            'type': 'RFP_UPLOAD',
-            'name': 'RFP Submission',
-            'contact': rfp_data.get('email', 'N/A'),
-            'info': f"Company: {rfp_data.get('company', 'N/A')}. Brief: {rfp_data.get('brief', 'N/A')}",
-            'ticket_id': ticket_id,
-            'metadata': {
-                'company': rfp_data.get('company'),
-                'email': rfp_data.get('email'),
-                'brief': rfp_data.get('brief')
-            }
-        }
-    
-    def format_career_lead(self, career_data: Dict, ticket_id: str) -> Dict:
-        """Format career application data for database"""
-        return {
-            'type': 'CAREER_APPLICATION',
-            'name': career_data.get('name', 'N/A'),
-            'contact': career_data.get('email', 'N/A'),
-            'info': f"Position: {career_data.get('position', 'N/A')}",
-            'ticket_id': ticket_id,
-            'metadata': {
-                'position': career_data.get('position'),
-                'email': career_data.get('email')
             }
         }
 
 
 # Create singleton instance
 database_service = DatabaseService()
-
-
-def save_lead_to_database(lead_data: Dict) -> Optional[int]:
-    """
-    Convenience function to save lead data
-    
-    Usage:
-        from database_service import save_lead_to_database
-        
-        lead_data = {
-            'type': 'DEMO_REQUEST',
-            'name': 'John Doe',
-            'contact': 'john@example.com',
-            'info': 'Looking for a demo',
-            'ticket_id': 'ABC123'
-        }
-        
-        lead_id = save_lead_to_database(lead_data)
-    """
-    return database_service.save_lead(lead_data)
 

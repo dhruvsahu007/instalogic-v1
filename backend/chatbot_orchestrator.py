@@ -214,6 +214,53 @@ class ChatbotOrchestrator:
                     return intent
         return None
     
+    def _filter_relevant_sources(self, sources: List[str], query: str) -> List[str]:
+        """
+        Filter sources to return only those relevant to the query
+        STRICT FILTERING: Only show case-studies when explicitly asked
+        """
+        if not sources:
+            return []
+        
+        query_lower = query.lower()
+        
+        # Define query intent patterns - be MORE specific
+        case_study_queries = ['case study', 'case studies', 'past work', 'portfolio', 'success story', 'projects you', 'show me example']
+        
+        # STRICT RULE: Only include case-studies if EXPLICITLY asked
+        is_case_study_query = any(kw in query_lower for kw in case_study_queries)
+        
+        # DEBUG: Log filtering decisions
+        print(f"\n[SOURCE FILTER] Query: {query}")
+        print(f"[SOURCE FILTER] Original sources: {sources}")
+        print(f"[SOURCE FILTER] Is case study query? {is_case_study_query}")
+        
+        # Filter sources with STRICT rules
+        filtered_sources = []
+        for source in sources:
+            source_lower = source.lower()
+            
+            # CRITICAL: ALWAYS exclude case-studies UNLESS explicitly asked
+            if 'case-studies' in source_lower:
+                if is_case_study_query:
+                    filtered_sources.append(source)  # Only include if explicitly asked
+                    print(f"[SOURCE FILTER] KEPT case-studies (explicitly asked)")
+                else:
+                    print(f"[SOURCE FILTER] REMOVED case-studies (not asked): {source}")
+                # Otherwise, skip it completely
+                continue
+            
+            # For all other sources, include them
+            filtered_sources.append(source)
+            print(f"[SOURCE FILTER] KEPT: {source}")
+        
+        # Remove duplicates and limit to 3 most relevant sources
+        filtered_sources = list(dict.fromkeys(filtered_sources))[:3]
+        
+        print(f"[SOURCE FILTER] Final filtered sources: {filtered_sources}")
+        
+        return filtered_sources
+    
     def _query_knowledge_base(self, query: str, session_id: str) -> Dict:
         """
         Query Bedrock Knowledge Base and enrich response
@@ -242,17 +289,20 @@ Be brief, warm, and professional."""
             use_knowledge_base=True
         )
         
+        # Filter sources to only relevant ones
+        filtered_sources = self._filter_relevant_sources(kb_result.get('sources', []), query)
+        
         # Enrich response with actions (OUTPUT 3)
         enriched_response = self.enrich_response(kb_result['response'], query)
         
         return {
             'type': 'knowledge',
             'response': kb_result['response'],
-            'sources': kb_result.get('sources', []),
+            'sources': filtered_sources,  # Use filtered sources
             'rich_payload': enriched_response,
             'metadata': {
                 'kb_used': kb_result.get('context_used', False),
-                'source_count': len(kb_result.get('sources', []))
+                'source_count': len(filtered_sources)
             }
         }
     

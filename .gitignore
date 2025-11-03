@@ -41,12 +41,18 @@ env/
 .env
 .env.local
 .env.*.local
+!.env.example
+!backend/.env.example
 
 # SQLite Database
 *.db
 *.sqlite
 *.sqlite3
 chatbot_leads.db
+
+# Database backups
+*_backup.py
+*_backup.db
 
 # Logs
 *.log
