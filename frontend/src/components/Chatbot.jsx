@@ -166,7 +166,10 @@ function Chatbot() {
                 </div>
                 {message.sources && message.sources.length > 0 && (
                   <div className="message-sources">
-                    <strong>📚 Sources:</strong>
+                    <strong>
+                      <span>📚</span>
+                      <span>sources:</span>
+                    </strong>
                     {message.sources.map((source, idx) => (
                       <a 
                         key={idx} 
@@ -174,8 +177,9 @@ function Chatbot() {
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="source-link"
+                        title={`View source: ${source}`}
                       >
-                        {source}
+                        {source.replace('https://www.', '').replace('https://', '')}
                       </a>
                     ))}
                   </div>

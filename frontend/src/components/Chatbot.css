@@ -192,42 +192,56 @@
 }
 
 .message-sources {
-  margin-top: 12px;
-  padding: 10px 12px;
-  background: rgba(74, 144, 226, 0.08);
-  border-left: 3px solid #4A90E2;
-  border-radius: 6px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(53, 122, 189, 0.05) 100%);
+  border-left: 4px solid #4A90E2;
+  border-radius: 8px;
   font-size: 0.875rem;
   max-width: 100%;
   overflow: hidden;
   word-wrap: break-word;
+  box-shadow: 0 2px 4px rgba(74, 144, 226, 0.1);
 }
 
 .message-sources strong {
-  display: block;
-  margin-bottom: 6px;
-  color: #4A90E2;
-  font-size: 0.85rem;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: #2563eb;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .source-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: #357ABD;
   text-decoration: none;
-  padding: 4px 0;
+  padding: 6px 8px;
+  margin: 4px 0;
   font-size: 0.8rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transition: color 0.2s;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+  transition: all 0.2s;
   max-width: 100%;
   word-break: break-all;
 }
 
+.source-link::before {
+  content: "🔗";
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
 .source-link:hover {
-  color: #4A90E2;
-  text-decoration: underline;
+  color: #2563eb;
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateX(4px);
+  box-shadow: 0 2px 6px rgba(74, 144, 226, 0.15);
 }
 
 .typing-indicator {

@@ -79,6 +79,12 @@ coverage/
 .aws/
 credentials
 
+# AWS Keys & PEM Files (SECURITY CRITICAL)
+*.pem
+*.key
+*.ppk
+instalogic-key-pair.pem
+
 # Firebase
 firebase-credentials.json
 serviceAccountKey.json

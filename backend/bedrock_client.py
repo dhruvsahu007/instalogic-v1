@@ -114,6 +114,27 @@ class BedrockClient:
         
         return "I apologize, but I couldn't generate a response. Please try again."
     
+    def _map_s3_to_website(self, content: str) -> str:
+        """
+        Map S3 content to relevant InstaLogic website pages based on keywords
+        """
+        content_lower = content.lower()
+        
+        # Check for specific topics and map to relevant pages
+        if any(keyword in content_lower for keyword in ['case study', 'case studies', 'project', 'client work', 'success story']):
+            return 'https://www.instalogic.in/case-studies/'
+        elif any(keyword in content_lower for keyword in ['service', 'offering', 'solution', 'capability', 'what we do']):
+            return 'https://www.instalogic.in/our-services/'
+        elif any(keyword in content_lower for keyword in ['career', 'job', 'hiring', 'position', 'opening', 'work with us', 'join our team']):
+            return 'https://www.instalogic.in/careers/'
+        elif any(keyword in content_lower for keyword in ['about us', 'our story', 'history', 'mission', 'vision', 'values']):
+            return 'https://www.instalogic.in/our-story/'
+        elif any(keyword in content_lower for keyword in ['contact', 'reach us', 'get in touch', 'email', 'phone', 'address']):
+            return 'https://www.instalogic.in/contact-us/'
+        else:
+            # Default to homepage
+            return 'https://www.instalogic.in/'
+    
     def retrieve_from_knowledge_base(
         self,
         query: str,
@@ -143,7 +164,33 @@ class BedrockClient:
             for result in response.get('retrievalResults', []):
                 content = result.get('content', {}).get('text', '')
                 score = result.get('score', 0)
-                source_uri = result.get('location', {}).get('webLocation', {}).get('url', '')
+                metadata = result.get('metadata', {})
+                
+                # Extract source URI from various possible locations
+                location = result.get('location', {})
+                source_uri = ''
+                
+                # Priority 1: Check metadata for x-amz-bedrock-kb-source-uri (original web URL)
+                if 'x-amz-bedrock-kb-source-uri' in metadata:
+                    source_uri = metadata['x-amz-bedrock-kb-source-uri']
+                # Priority 2: Check for webLocation
+                elif 'webLocation' in location:
+                    source_uri = location['webLocation'].get('url', '')
+                # Priority 3: S3 location - check actual structure
+                elif 's3Location' in location:
+                    s3_uri = location['s3Location'].get('uri', '')
+                    # Convert S3 URI to website URL based on content
+                    if s3_uri:
+                        source_uri = self._map_s3_to_website(content)
+                # Priority 4: Check location type field
+                elif 'type' in location:
+                    if location['type'] == 'S3':
+                        source_uri = self._map_s3_to_website(content)
+                
+                # Final fallback: If still no source_uri, map based on content
+                if not source_uri:
+                    source_uri = self._map_s3_to_website(content)
+                
                 
                 if content:
                     retrieved_chunks.append({
@@ -154,9 +201,23 @@ class BedrockClient:
                     if source_uri and source_uri not in sources:
                         sources.append(source_uri)
             
+            # Clean up sources: convert any remaining S3 URIs to website URLs
+            cleaned_sources = []
+            for source in sources:
+                if source.startswith('s3://'):
+                    # Find the corresponding chunk content to map to website
+                    matching_chunk = next((chunk for chunk in retrieved_chunks if chunk['source'] == source), None)
+                    if matching_chunk:
+                        website_url = self._map_s3_to_website(matching_chunk['text'])
+                        if website_url not in cleaned_sources:
+                            cleaned_sources.append(website_url)
+                else:
+                    if source not in cleaned_sources:
+                        cleaned_sources.append(source)
+            
             return {
                 'chunks': retrieved_chunks,
-                'sources': sources,
+                'sources': cleaned_sources,
                 'context': '\n\n'.join([chunk['text'] for chunk in retrieved_chunks])
             }
         
