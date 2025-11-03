@@ -219,10 +219,26 @@ class ChatbotOrchestrator:
         Query Bedrock Knowledge Base and enrich response
         Combines KB query with rich actionable responses (OUTPUT 3)
         """
+        # Concise system prompt with first-person instructions
+        concise_prompt = """You are InstaLogic's AI assistant. You represent the company directly.
+
+CRITICAL RULES:
+1. Speak in FIRST PERSON - use "we", "our", "us" (NOT "InstaLogic's")
+2. NEVER say "Based on the context provided" or similar phrases
+3. Keep responses SHORT (2-3 sentences max)
+4. Use bullet points for lists (max 4 items)
+5. Be natural and conversational
+
+Examples:
+❌ BAD: "InstaLogic's services include..." or "Based on the context..."
+✅ GOOD: "We offer..." or "Our services include..."
+
+Be brief, warm, and professional."""
+        
         # Query Bedrock KB
         kb_result = self.bedrock_client.generate_response_with_kb(
             user_message=query,
-            system_prompt="You are a helpful assistant for InstaLogic. Provide clear, professional answers.",
+            system_prompt=concise_prompt,
             use_knowledge_base=True
         )
         
@@ -324,21 +340,23 @@ class ChatbotOrchestrator:
         
         Flow steps:
         1. demo_start -> Ask for industry
-        2. demo_awaiting_industry -> Ask for contact info
+        2. demo_awaiting_industry -> Ask for name
         3. demo_awaiting_name -> Ask for email
-        4. demo_awaiting_email -> Ask for preferred date
-        5. demo_awaiting_date -> Confirm and complete
+        4. demo_awaiting_email -> Ask for phone
+        5. demo_awaiting_phone -> Ask for referral source
+        6. demo_awaiting_referral -> Ask for preferred date
+        7. demo_awaiting_date -> Confirm and complete
         """
         session = self.session_manager.get_session(session_id)
         current_state = session['state']
         
-        # Step 1: Start flow
+        # Step 1: Start flow - Ask for industry
         if current_state is None or current_state == 'demo_start':
             self.session_manager.update_session(session_id, 'demo_awaiting_industry', {})
             return {
                 'type': 'transaction',
                 'flow': 'demo',
-                'response': "I'd be happy to arrange a demo for you! 🎯\n\nFirst, which industry is this dashboard for?",
+                'response': "I'd be happy to arrange a demo! 🎯\n\nWhich industry is this for?",
                 'rich_payload': {
                     'buttons': [
                         {'label': '🏛️ Government', 'action': 'select_industry', 'value': 'Government'},
@@ -347,34 +365,34 @@ class ChatbotOrchestrator:
                         {'label': '🏢 Other', 'action': 'select_industry', 'value': 'Other'}
                     ]
                 },
-                'metadata': {'step': 1, 'total_steps': 5}
+                'metadata': {'step': 1, 'total_steps': 7}
             }
         
-        # Step 2: Collect industry
+        # Step 2: Collect industry -> Ask for name
         elif current_state == 'demo_awaiting_industry':
             industry = query.strip()
             self.session_manager.update_session(session_id, 'demo_awaiting_name', {'industry': industry})
             return {
                 'type': 'transaction',
                 'flow': 'demo',
-                'response': f"Great! A demo for the **{industry}** industry. 👍\n\nWhat's your name?",
+                'response': f"Great! **{industry}** industry. 👍\n\nWhat's your name?",
                 'rich_payload': {'input_type': 'text', 'placeholder': 'Your full name'},
-                'metadata': {'step': 2, 'total_steps': 5}
+                'metadata': {'step': 2, 'total_steps': 7}
             }
         
-        # Step 3: Collect name
+        # Step 3: Collect name -> Ask for email
         elif current_state == 'demo_awaiting_name':
             name = query.strip()
             self.session_manager.update_session(session_id, 'demo_awaiting_email', {'name': name})
             return {
                 'type': 'transaction',
                 'flow': 'demo',
-                'response': f"Nice to meet you, **{name}**! 👋\n\nWhat's your email address?",
+                'response': f"Nice to meet you, **{name}**! 👋\n\nWhat's your email?",
                 'rich_payload': {'input_type': 'email', 'placeholder': 'your.email@company.com'},
-                'metadata': {'step': 3, 'total_steps': 5}
+                'metadata': {'step': 3, 'total_steps': 7}
             }
         
-        # Step 4: Collect email
+        # Step 4: Collect email -> Ask for phone
         elif current_state == 'demo_awaiting_email':
             email = query.strip()
             # Basic email validation
@@ -382,21 +400,53 @@ class ChatbotOrchestrator:
                 return {
                     'type': 'transaction',
                     'flow': 'demo',
-                    'response': "That doesn't look like a valid email address. Please provide a valid email:",
+                    'response': "Please provide a valid email:",
                     'rich_payload': {'input_type': 'email', 'placeholder': 'your.email@company.com'},
-                    'metadata': {'step': 3, 'total_steps': 5, 'error': True}
+                    'metadata': {'step': 3, 'total_steps': 7, 'error': True}
                 }
             
-            self.session_manager.update_session(session_id, 'demo_awaiting_date', {'email': email})
+            self.session_manager.update_session(session_id, 'demo_awaiting_phone', {'email': email})
             return {
                 'type': 'transaction',
                 'flow': 'demo',
-                'response': "Perfect! 📧\n\nWhat's your preferred date and time for the demo?",
-                'rich_payload': {'input_type': 'datetime', 'placeholder': 'e.g., Next Monday at 2 PM'},
-                'metadata': {'step': 4, 'total_steps': 5}
+                'response': "Perfect! 📧\n\nWhat's your phone number?",
+                'rich_payload': {'input_type': 'tel', 'placeholder': '+91 XXXXX XXXXX'},
+                'metadata': {'step': 4, 'total_steps': 7}
             }
         
-        # Step 5: Complete flow
+        # Step 5: Collect phone -> Ask how they heard about us
+        elif current_state == 'demo_awaiting_phone':
+            phone = query.strip()
+            self.session_manager.update_session(session_id, 'demo_awaiting_referral', {'phone': phone})
+            return {
+                'type': 'transaction',
+                'flow': 'demo',
+                'response': "Thanks! 📱\n\nHow did you hear about us?",
+                'rich_payload': {
+                    'buttons': [
+                        {'label': '🔍 Google Search', 'action': 'select_referral', 'value': 'Google Search'},
+                        {'label': '🤝 Referral', 'action': 'select_referral', 'value': 'Referral'},
+                        {'label': '📱 Social Media', 'action': 'select_referral', 'value': 'Social Media'},
+                        {'label': '📰 Advertisement', 'action': 'select_referral', 'value': 'Advertisement'},
+                        {'label': '🏢 Other', 'action': 'select_referral', 'value': 'Other'}
+                    ]
+                },
+                'metadata': {'step': 5, 'total_steps': 7}
+            }
+        
+        # Step 6: Collect referral source -> Ask for date
+        elif current_state == 'demo_awaiting_referral':
+            referral_source = query.strip()
+            self.session_manager.update_session(session_id, 'demo_awaiting_date', {'referral_source': referral_source})
+            return {
+                'type': 'transaction',
+                'flow': 'demo',
+                'response': "Great! 👍\n\nWhat's your preferred date and time?",
+                'rich_payload': {'input_type': 'datetime', 'placeholder': 'e.g., 12-11-25, 4:00 PM'},
+                'metadata': {'step': 6, 'total_steps': 7}
+            }
+        
+        # Step 7: Complete flow
         elif current_state == 'demo_awaiting_date':
             preferred_date = query.strip()
             session_data = session['data']
@@ -414,16 +464,18 @@ class ChatbotOrchestrator:
             self.session_manager.clear_session_state(session_id)
             
             # Format confirmation
-            confirmation = f"""✅ **Demo Request Confirmed!**
+            confirmation = f"""✅ **Demo Confirmed!**
 
-**Details:**
+**Your Details:**
 - Industry: {session_data.get('industry', 'N/A')}
 - Name: {session_data.get('name', 'N/A')}
 - Email: {session_data.get('email', 'N/A')}
-- Preferred Date: {preferred_date}
+- Phone: {session_data.get('phone', 'N/A')}
+- Referral: {session_data.get('referral_source', 'N/A')}
+- Date: {preferred_date}
 - Ticket ID: **{ticket_id}**
 
-A member of our team will contact you shortly to confirm the demo. We're looking forward to showing you what InstaLogic can do! 🚀"""
+Our team will contact you shortly! 🚀"""
             
             return {
                 'type': 'transaction',
@@ -435,10 +487,10 @@ A member of our team will contact you shortly to confirm the demo. We're looking
                 'rich_payload': {
                     'buttons': [
                         {'label': '📋 View Services', 'action': 'open_link', 'url': 'https://www.instalogic.in/our-services/'},
-                        {'label': '📚 See Case Studies', 'action': 'open_link', 'url': 'https://www.instalogic.in/case-studies/'}
+                        {'label': '📚 Case Studies', 'action': 'open_link', 'url': 'https://www.instalogic.in/case-studies/'}
                     ]
                 },
-                'metadata': {'step': 5, 'total_steps': 5, 'completed': True}
+                'metadata': {'step': 7, 'total_steps': 7, 'completed': True}
             }
         
         # Fallback

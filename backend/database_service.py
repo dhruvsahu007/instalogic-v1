@@ -309,12 +309,14 @@ class DatabaseService:
         return {
             'type': 'DEMO_REQUEST',
             'name': demo_data.get('name', 'N/A'),
-            'contact': demo_data.get('email', 'N/A'),
-            'info': f"Industry: {demo_data.get('industry', 'N/A')}. Preferred Date: {demo_data.get('preferred_date', 'N/A')}",
+            'contact': f"{demo_data.get('email', 'N/A')} | {demo_data.get('phone', 'N/A')}",
+            'info': f"Industry: {demo_data.get('industry', 'N/A')}. Date: {demo_data.get('preferred_date', 'N/A')}. Referral: {demo_data.get('referral_source', 'N/A')}",
             'ticket_id': ticket_id,
             'metadata': {
                 'industry': demo_data.get('industry'),
                 'email': demo_data.get('email'),
+                'phone': demo_data.get('phone'),
+                'referral_source': demo_data.get('referral_source'),
                 'preferred_date': demo_data.get('preferred_date')
             }
         }
