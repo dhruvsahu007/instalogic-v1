@@ -340,11 +340,13 @@ Be brief, warm, and professional."""
         
         Flow steps:
         1. demo_start -> Ask for industry
-        2. demo_awaiting_industry -> Ask for name
+        2. demo_awaiting_industry -> Ask for name (or custom industry if "Other")
+        2b. demo_awaiting_custom_industry -> Collect custom industry, then ask for name
         3. demo_awaiting_name -> Ask for email
         4. demo_awaiting_email -> Ask for phone
         5. demo_awaiting_phone -> Ask for referral source
-        6. demo_awaiting_referral -> Ask for preferred date
+        6. demo_awaiting_referral -> Ask for date (or custom referral if "Other")
+        6b. demo_awaiting_custom_referral -> Collect custom referral, then ask for date
         7. demo_awaiting_date -> Confirm and complete
         """
         session = self.session_manager.get_session(session_id)
@@ -368,14 +370,39 @@ Be brief, warm, and professional."""
                 'metadata': {'step': 1, 'total_steps': 7}
             }
         
-        # Step 2: Collect industry -> Ask for name
+        # Step 2: Collect industry -> Ask for name (or ask for specific industry if "Other")
         elif current_state == 'demo_awaiting_industry':
             industry = query.strip()
+            
+            # If "Other" is selected, ask for specific industry
+            if '🏢 Other' in industry or industry.lower() == 'other':
+                self.session_manager.update_session(session_id, 'demo_awaiting_custom_industry', {})
+                return {
+                    'type': 'transaction',
+                    'flow': 'demo',
+                    'response': "Great! 👍\n\nWhich industry would you like the demo for? (Please specify)",
+                    'rich_payload': {'input_type': 'text', 'placeholder': 'e.g., Healthcare, Manufacturing, etc.'},
+                    'metadata': {'step': 2, 'total_steps': 7}
+                }
+            
+            # Standard industry selected
             self.session_manager.update_session(session_id, 'demo_awaiting_name', {'industry': industry})
             return {
                 'type': 'transaction',
                 'flow': 'demo',
                 'response': f"Great! **{industry}** industry. 👍\n\nWhat's your name?",
+                'rich_payload': {'input_type': 'text', 'placeholder': 'Your full name'},
+                'metadata': {'step': 2, 'total_steps': 7}
+            }
+        
+        # Step 2b: Collect custom industry (when "Other" was selected)
+        elif current_state == 'demo_awaiting_custom_industry':
+            custom_industry = query.strip()
+            self.session_manager.update_session(session_id, 'demo_awaiting_name', {'industry': custom_industry})
+            return {
+                'type': 'transaction',
+                'flow': 'demo',
+                'response': f"Perfect! **{custom_industry}** industry. 👍\n\nWhat's your name?",
                 'rich_payload': {'input_type': 'text', 'placeholder': 'Your full name'},
                 'metadata': {'step': 2, 'total_steps': 7}
             }
@@ -434,14 +461,39 @@ Be brief, warm, and professional."""
                 'metadata': {'step': 5, 'total_steps': 7}
             }
         
-        # Step 6: Collect referral source -> Ask for date
+        # Step 6: Collect referral source -> Ask for date (or ask for specific source if "Other")
         elif current_state == 'demo_awaiting_referral':
             referral_source = query.strip()
+            
+            # If "Other" is selected, ask for specific source
+            if '🏢 Other' in referral_source or referral_source.lower() == 'other':
+                self.session_manager.update_session(session_id, 'demo_awaiting_custom_referral', {})
+                return {
+                    'type': 'transaction',
+                    'flow': 'demo',
+                    'response': "Thanks! 👍\n\nHow did you hear about us? (Please specify)",
+                    'rich_payload': {'input_type': 'text', 'placeholder': 'e.g., LinkedIn, Blog, Conference, etc.'},
+                    'metadata': {'step': 5, 'total_steps': 7}
+                }
+            
+            # Standard referral source selected
             self.session_manager.update_session(session_id, 'demo_awaiting_date', {'referral_source': referral_source})
             return {
                 'type': 'transaction',
                 'flow': 'demo',
                 'response': "Great! 👍\n\nWhat's your preferred date and time?",
+                'rich_payload': {'input_type': 'datetime', 'placeholder': 'e.g., 12-11-25, 4:00 PM'},
+                'metadata': {'step': 6, 'total_steps': 7}
+            }
+        
+        # Step 6b: Collect custom referral source (when "Other" was selected)
+        elif current_state == 'demo_awaiting_custom_referral':
+            custom_referral = query.strip()
+            self.session_manager.update_session(session_id, 'demo_awaiting_date', {'referral_source': custom_referral})
+            return {
+                'type': 'transaction',
+                'flow': 'demo',
+                'response': "Perfect! 👍\n\nWhat's your preferred date and time?",
                 'rich_payload': {'input_type': 'datetime', 'placeholder': 'e.g., 12-11-25, 4:00 PM'},
                 'metadata': {'step': 6, 'total_steps': 7}
             }
