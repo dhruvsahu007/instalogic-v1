@@ -10,6 +10,7 @@ import Sidebar from './components/Sidebar'
 import Chatbot from './components/Chatbot'
 import Dashboard from './pages/admin/Dashboard'
 import Leads from './pages/admin/Leads'
+import PriorityQueue from './pages/admin/PriorityQueue'
 import './App.css'
 
 function HomePage() {
@@ -45,6 +46,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/leads" element={<Leads />} />
+          <Route path="/admin/priority-queue" element={<PriorityQueue />} />
         </Routes>
       </div>
     </Router>

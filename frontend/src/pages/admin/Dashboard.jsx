@@ -141,6 +141,11 @@ const Dashboard = () => {
               <div style={{ fontSize: '16px', fontWeight: '600', color: '#0f172a' }}>View All Leads</div>
             </Link>
             
+            <Link to="/admin/priority-queue" style={{ padding: '20px', backgroundColor: '#fff7ed', borderRadius: '10px', border: '1px solid #fed7aa', textDecoration: 'none', textAlign: 'center', transition: 'all 0.2s' }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🎯</div>
+              <div style={{ fontSize: '16px', fontWeight: '600', color: '#0f172a' }}>Priority Queue</div>
+            </Link>
+            
             <div style={{ padding: '20px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', cursor: 'pointer' }}>
               <div style={{ fontSize: '32px', marginBottom: '12px' }}>📊</div>
               <div style={{ fontSize: '16px', fontWeight: '600', color: '#0f172a' }}>Generate Report</div>
